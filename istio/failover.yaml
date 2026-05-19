@@ -1,0 +1,49 @@
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: hello-mesh
+spec:
+  hosts:
+  - hello-mesh
+  - hello-mesh.codex-test.svc.cluster.local
+  gateways:
+  - mesh
+  http:
+  - name: hello-failover
+    retries:
+      attempts: 2
+      perTryTimeout: 2s
+      retryOn: connect-failure,refused-stream,reset,gateway-error,retriable-status-codes
+      retriableStatusCodes:
+      - 503
+    route:
+    - destination:
+        host: hello-mesh
+        port:
+          number: 8080
+---
+apiVersion: networking.istio.io/v1
+kind: DestinationRule
+metadata:
+  name: hello-mesh
+spec:
+  host: hello-mesh
+  trafficPolicy:
+    loadBalancer:
+      simple: LEAST_REQUEST
+      localityLbSetting:
+        enabled: true
+        failoverPriority:
+        - failover-role
+    outlierDetection:
+      consecutive5xxErrors: 1
+      interval: 5s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 100
+  subsets:
+  - name: primary
+    labels:
+      failover-role: primary
+  - name: secondary
+    labels:
+      failover-role: secondary
