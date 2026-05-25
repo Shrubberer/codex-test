@@ -1,0 +1,30 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: istio-system
+---
+apiVersion: maistra.io/v2
+kind: ServiceMeshControlPlane
+metadata:
+  name: codex-mesh
+  namespace: istio-system
+spec:
+  version: v2.6
+  mode: MultiTenant
+  profiles:
+  - default
+  addons:
+    grafana:
+      enabled: false
+    kiali:
+      enabled: false
+    prometheus:
+      enabled: false
+  gateways:
+    enabled: false
+  policy:
+    type: Istiod
+  telemetry:
+    type: Istiod
+  tracing:
+    type: None

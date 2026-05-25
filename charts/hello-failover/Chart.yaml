@@ -1,0 +1,6 @@
+apiVersion: v2
+name: hello-failover
+description: Deploy the primary and secondary hello-world failover demo on OpenShift
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

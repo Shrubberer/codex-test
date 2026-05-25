@@ -1,0 +1,22 @@
+image:
+  repository: image-registry.openshift-image-registry.svc:5000/codex-test/hello-world
+  tag: latest
+
+app:
+  version: "0.1.0"
+
+instances:
+  - name: primary
+    replyMessage: hello from primary version 0.1.0
+    routeEnabled: true
+    fault:
+      enabled: true
+      triggerInput: fail-primary
+      statusCode: 503
+  - name: secondary
+    replyMessage: hello from secondary version 0.1.0
+    routeEnabled: true
+    fault:
+      enabled: false
+      triggerInput: fail-primary
+      statusCode: 503

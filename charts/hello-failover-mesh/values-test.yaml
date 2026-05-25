@@ -1,0 +1,9 @@
+serviceMeshMember:
+  enabled: true
+  name: default
+  controlPlane:
+    name: codex-mesh
+    namespace: istio-system
+
+meshClient:
+  enabled: true

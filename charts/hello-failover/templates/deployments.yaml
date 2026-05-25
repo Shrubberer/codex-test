@@ -1,0 +1,71 @@
+{{- $root := . -}}
+{{- range $instance := .Values.instances }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $root.Values.app.baseName }}-{{ $instance.name }}
+  labels:
+    {{- include "hello-failover.commonLabels" $root | nindent 4 }}
+    app: {{ $root.Values.app.selectorName }}
+    app.kubernetes.io/component: {{ $instance.name }}
+    mesh-demo: {{ $root.Values.app.meshDemoLabel }}
+    failover-role: {{ $instance.name }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ $root.Values.app.selectorName }}
+      mesh-demo: {{ $root.Values.app.meshDemoLabel }}
+      failover-role: {{ $instance.name }}
+  template:
+    metadata:
+      labels:
+        {{- include "hello-failover.commonLabels" $root | nindent 8 }}
+        app: {{ $root.Values.app.selectorName }}
+        app.kubernetes.io/component: {{ $instance.name }}
+        mesh-demo: {{ $root.Values.app.meshDemoLabel }}
+        failover-role: {{ $instance.name }}
+      annotations:
+        sidecar.istio.io/inject: {{ ternary "true" "false" $root.Values.sidecar.inject | quote }}
+        {{- if $root.Values.prometheus.enabled }}
+        prometheus.io/scrape: "true"
+        prometheus.io/path: {{ $root.Values.prometheus.path }}
+        prometheus.io/port: {{ $root.Values.prometheus.port | quote }}
+        {{- end }}
+    spec:
+      containers:
+        - name: hello-world
+          image: {{ $root.Values.image.repository }}:{{ $root.Values.image.tag }}
+          imagePullPolicy: {{ $root.Values.image.pullPolicy }}
+          env:
+            - name: APP_INSTANCE_NAME
+              value: {{ $instance.name }}
+            - name: APP_REPLY_MESSAGE
+              value: {{ $instance.replyMessage | quote }}
+            - name: APP_VERSION
+              value: {{ $root.Values.app.version | quote }}
+            - name: APP_FAULT_ENABLED
+              value: {{ ternary "true" "false" $instance.fault.enabled | quote }}
+            - name: APP_FAULT_TRIGGER_INPUT
+              value: {{ $instance.fault.triggerInput | quote }}
+            - name: APP_FAULT_STATUS_CODE
+              value: {{ $instance.fault.statusCode | quote }}
+          ports:
+            - name: http
+              containerPort: {{ $root.Values.containerPort }}
+          livenessProbe:
+            httpGet:
+              path: {{ $root.Values.livenessProbe.path }}
+              port: http
+            initialDelaySeconds: {{ $root.Values.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ $root.Values.livenessProbe.periodSeconds }}
+          readinessProbe:
+            httpGet:
+              path: {{ $root.Values.readinessProbe.path }}
+              port: http
+            initialDelaySeconds: {{ $root.Values.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ $root.Values.readinessProbe.periodSeconds }}
+          resources:
+            {{- toYaml $root.Values.resources | nindent 12 }}
+---
+{{- end }}

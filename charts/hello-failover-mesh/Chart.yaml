@@ -1,0 +1,6 @@
+apiVersion: v2
+name: hello-failover-mesh
+description: Deploy Service Mesh resources for the hello-world failover demo
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

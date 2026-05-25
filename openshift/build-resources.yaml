@@ -1,0 +1,22 @@
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: hello-world
+---
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: hello-world
+spec:
+  source:
+    type: Binary
+  strategy:
+    sourceStrategy:
+      from:
+        kind: ImageStreamTag
+        name: java:openjdk-17-ubi8
+        namespace: openshift
+  output:
+    to:
+      kind: ImageStreamTag
+      name: hello-world:latest

@@ -1,0 +1,48 @@
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: {{ .Values.mesh.serviceName }}
+spec:
+  hosts:
+    - {{ .Values.mesh.serviceName }}
+    - {{ .Values.mesh.serviceName }}.{{ .Release.Namespace }}.svc.cluster.local
+  gateways:
+    - mesh
+  http:
+    - name: hello-failover
+      retries:
+        attempts: {{ .Values.mesh.retries.attempts }}
+        perTryTimeout: {{ .Values.mesh.retries.perTryTimeout }}
+        retryOn: {{ .Values.mesh.retries.retryOn }}
+        retriableStatusCodes:
+          {{- toYaml .Values.mesh.retries.retriableStatusCodes | nindent 10 }}
+      route:
+        - destination:
+            host: {{ .Values.mesh.serviceName }}
+            port:
+              number: 8080
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: {{ .Values.mesh.serviceName }}
+spec:
+  host: {{ .Values.mesh.serviceName }}
+  trafficPolicy:
+    loadBalancer:
+      simple: LEAST_REQUEST
+      localityLbSetting:
+        enabled: true
+        failoverPriority:
+          {{- toYaml .Values.mesh.failoverPriority | nindent 10 }}
+    outlierDetection:
+      consecutive5xxErrors: {{ .Values.mesh.outlierDetection.consecutive5xxErrors }}
+      interval: {{ .Values.mesh.outlierDetection.interval }}
+      baseEjectionTime: {{ .Values.mesh.outlierDetection.baseEjectionTime }}
+      maxEjectionPercent: {{ .Values.mesh.outlierDetection.maxEjectionPercent }}
+  subsets:
+    {{- range .Values.mesh.subsets }}
+    - name: {{ .name }}
+      labels:
+        failover-role: {{ .failoverRole }}
+    {{- end }}

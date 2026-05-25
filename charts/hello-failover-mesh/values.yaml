@@ -1,0 +1,33 @@
+serviceMeshMember:
+  enabled: true
+  name: default
+  controlPlane:
+    name: codex-mesh
+    namespace: istio-system
+
+mesh:
+  serviceName: hello-mesh
+  retries:
+    attempts: 2
+    perTryTimeout: 2s
+    retryOn: connect-failure,refused-stream,reset,gateway-error,retriable-status-codes
+    retriableStatusCodes:
+      - 503
+  outlierDetection:
+    consecutive5xxErrors: 1
+    interval: 5s
+    baseEjectionTime: 30s
+    maxEjectionPercent: 100
+  failoverPriority:
+    - failover-role
+  subsets:
+    - name: primary
+      failoverRole: primary
+    - name: secondary
+      failoverRole: secondary
+
+meshClient:
+  enabled: true
+  name: mesh-client
+  failoverRole: primary
+  image: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest

@@ -1,0 +1,36 @@
+{{- if .Values.meshClient.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.meshClient.name }}
+  labels:
+    app: {{ .Values.meshClient.name }}
+    app.kubernetes.io/name: {{ .Values.meshClient.name }}
+    app.kubernetes.io/part-of: codex-test
+    app.kubernetes.io/component: test-client
+    failover-role: {{ .Values.meshClient.failoverRole }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ .Values.meshClient.name }}
+      failover-role: {{ .Values.meshClient.failoverRole }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.meshClient.name }}
+        app.kubernetes.io/name: {{ .Values.meshClient.name }}
+        app.kubernetes.io/part-of: codex-test
+        app.kubernetes.io/component: test-client
+        failover-role: {{ .Values.meshClient.failoverRole }}
+      annotations:
+        sidecar.istio.io/inject: "true"
+    spec:
+      containers:
+        - name: mesh-client
+          image: {{ .Values.meshClient.image }}
+          command:
+            - /bin/sh
+            - -c
+            - sleep infinity
+{{- end }}

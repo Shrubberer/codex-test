@@ -1,0 +1,58 @@
+app:
+  baseName: hello
+  selectorName: hello-world
+  version: "0.1.0"
+  meshDemoLabel: failover
+
+image:
+  repository: image-registry.openshift-image-registry.svc:5000/codex-test/hello-world
+  tag: latest
+  pullPolicy: Always
+
+containerPort: 8080
+
+sidecar:
+  inject: true
+
+prometheus:
+  enabled: true
+  path: /actuator/prometheus
+  port: "8080"
+
+meshService:
+  enabled: true
+  name: hello-mesh
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+livenessProbe:
+  path: /actuator/health/liveness
+  initialDelaySeconds: 30
+  periodSeconds: 10
+
+readinessProbe:
+  path: /actuator/health/readiness
+  initialDelaySeconds: 10
+  periodSeconds: 10
+
+instances:
+  - name: primary
+    replyMessage: hello from primary version 0.1.0
+    routeEnabled: true
+    fault:
+      enabled: true
+      triggerInput: fail-primary
+      statusCode: 503
+  - name: secondary
+    replyMessage: hello from secondary version 0.1.0
+    routeEnabled: true
+    fault:
+      enabled: false
+      triggerInput: fail-primary
+      statusCode: 503

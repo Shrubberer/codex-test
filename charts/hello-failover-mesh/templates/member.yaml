@@ -1,0 +1,10 @@
+{{- if .Values.serviceMeshMember.enabled }}
+apiVersion: maistra.io/v1
+kind: ServiceMeshMember
+metadata:
+  name: {{ .Values.serviceMeshMember.name }}
+spec:
+  controlPlaneRef:
+    name: {{ .Values.serviceMeshMember.controlPlane.name }}
+    namespace: {{ .Values.serviceMeshMember.controlPlane.namespace }}
+{{- end }}

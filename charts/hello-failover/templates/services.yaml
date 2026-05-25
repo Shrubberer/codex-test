@@ -1,0 +1,49 @@
+{{- $root := . -}}
+{{- range $instance := .Values.instances }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $root.Values.app.baseName }}-{{ $instance.name }}
+  labels:
+    {{- include "hello-failover.commonLabels" $root | nindent 4 }}
+    app.kubernetes.io/component: {{ $instance.name }}
+  {{- if $root.Values.prometheus.enabled }}
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/path: {{ $root.Values.prometheus.path }}
+    prometheus.io/port: {{ $root.Values.prometheus.port | quote }}
+  {{- end }}
+spec:
+  selector:
+    app: {{ $root.Values.app.selectorName }}
+    mesh-demo: {{ $root.Values.app.meshDemoLabel }}
+    failover-role: {{ $instance.name }}
+  ports:
+    - name: http
+      port: {{ $root.Values.containerPort }}
+      targetPort: http
+---
+{{- end }}
+{{- if .Values.meshService.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.meshService.name }}
+  labels:
+    {{- include "hello-failover.commonLabels" . | nindent 4 }}
+    app.kubernetes.io/component: mesh-entry
+  {{- if .Values.prometheus.enabled }}
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/path: {{ .Values.prometheus.path }}
+    prometheus.io/port: {{ .Values.prometheus.port | quote }}
+  {{- end }}
+spec:
+  selector:
+    app: {{ .Values.app.selectorName }}
+    mesh-demo: {{ .Values.app.meshDemoLabel }}
+  ports:
+    - name: http
+      port: {{ .Values.containerPort }}
+      targetPort: http
+{{- end }}

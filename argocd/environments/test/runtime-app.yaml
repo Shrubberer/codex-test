@@ -1,0 +1,26 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: codex-test-runtime
+  namespace: openshift-gitops
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  project: codex-test
+  source:
+    repoURL: https://github.com/Shrubberer/codex-test.git
+    targetRevision: main
+    path: charts/hello-failover
+    helm:
+      releaseName: hello-failover
+      valueFiles:
+        - values-test.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: codex-test
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

@@ -1,70 +1,93 @@
 # codex-test
 
-Spring Boot failover demo for OpenShift CRC and Istio service mesh testing.
+Spring Boot failover demo for OpenShift, Service Mesh 2, and Argo CD app-of-apps.
 
 ## What is in this repo
 
 - One Spring Boot image that can run as either a primary or secondary instance.
 - Health and Prometheus endpoints for Kubernetes and mesh visibility.
 - A fault trigger so the primary instance can intentionally return a chosen HTTP error.
-- OpenShift manifests for two app deployments plus a stable in-mesh service.
-- Istio manifests for retries, outlier detection, and failover priority testing.
+- A Helm chart for the runtime resources.
+- A second Helm chart for the mesh resources.
+- Argo CD app-of-apps manifests for the `test` environment.
 
 ## Runtime behavior
 
-The root endpoint returns the configured reply message:
+The app replies on:
 
 ```text
 GET /
-```
-
-The app can also expose which instance handled the request:
-
-```text
 GET /details
 ```
 
-The fault trigger uses the `input` query parameter. With the default config, the
-primary instance returns `503` when it receives:
+With the default config, the primary instance returns `503` for:
 
 ```text
 GET /?input=fail-primary
 ```
 
-## OpenShift resources
+## Repo layout
 
-The base manifest creates:
+- `charts/hello-failover`
+  - runtime chart for the two deployments, services, and routes
+- `charts/hello-failover-mesh`
+  - mesh chart for `ServiceMeshMember`, `VirtualService`, `DestinationRule`, and the optional `mesh-client`
+- `argocd/bootstrap/test-root-app.yaml`
+  - one-time bootstrap manifest you can `oc apply`
+- `argocd/environments/test`
+  - the app-of-apps payload for the `test` environment
+- `openshift/build-resources.yaml`
+  - manual build resources kept outside Argo because the build is still binary S2I
+- `istio/smcp.yaml`
+  - lightweight SM2 control plane for CRC
 
-- one shared binary build and image stream
-- `hello-primary`
-- `hello-secondary`
-- `hello-mesh` as the stable in-mesh service name
-- direct debug routes for `hello-primary` and `hello-secondary`
+## Build and image flow
 
-Apply the base resources and build from this directory:
+Argo manages deployment state, not the binary S2I build. For now the build stays separate:
 
 ```bash
-oc new-project codex-test
-oc apply -f openshift.yaml -n codex-test
+oc apply -f openshift/build-resources.yaml -n codex-test
 oc start-build hello-world --from-dir=. --follow --wait -n codex-test
 ```
 
-## Istio resources
+When you move to a pipeline later, the pipeline should publish a tagged image and Git should update the Helm values that Argo watches.
 
-The `istio/` folder contains the mesh-specific resources:
+## Argo CD flow
 
-- `failover.yaml` with `VirtualService` and `DestinationRule`
-- `mesh-client.yaml` with a simple injected test client
-- `README.md` with the mesh prerequisites and test flow
+The `test` environment is defined by:
 
-Apply them only after the service mesh control plane and namespace membership are ready.
+- cluster: `https://kubernetes.default.svc`
+- namespace: `codex-test`
+- runtime values: `charts/hello-failover/values-test.yaml`
+- mesh values: `charts/hello-failover-mesh/values-test.yaml`
+
+Bootstrap the app-of-apps with:
+
+```bash
+oc apply -n openshift-gitops -f argocd/bootstrap/test-root-app.yaml
+```
+
+That root application creates:
+
+- the `codex-test` `AppProject`
+- the runtime child application
+- the mesh child application
+
+If the repo is private, add the repo credentials in Argo CD first. If it is already reachable from Argo CD, the single bootstrap apply is enough.
+
+## Updating versions
+
+To roll out a new application version through Argo CD, update the Helm values in Git:
+
+- `charts/hello-failover/values-test.yaml`
+  - `image.tag`
+  - `app.version`
+  - instance reply strings if you want them to reflect the version
+
+Once that Git change is pushed, Argo CD syncs the new desired state.
 
 ## Failover model
 
-The first pass uses a custom label, `failover-role`, instead of Kubernetes
-locality. The `mesh-client` pod is labeled `failover-role=primary`, which lets
-Istio prefer the primary endpoint first and fall back to the secondary endpoint
-after outlier detection ejects the failing primary endpoint.
+The current mesh policy prefers the primary instance using the custom `failover-role` label, then fails over to secondary when the primary returns `503` and is ejected by outlier detection.
 
-Later we can swap this from label-based priority to true topology labels such as
-`topology.kubernetes.io/region` and `topology.kubernetes.io/zone`.
+Later we can replace that label-based preference with true Kubernetes locality such as `topology.kubernetes.io/region` and `topology.kubernetes.io/zone`.

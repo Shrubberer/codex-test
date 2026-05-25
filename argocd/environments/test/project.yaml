@@ -1,0 +1,21 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: codex-test
+  namespace: openshift-gitops
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  description: GitOps project for the codex-test failover demo
+  sourceRepos:
+    - https://github.com/Shrubberer/codex-test.git
+    - git@github.com:Shrubberer/codex-test.git
+  destinations:
+    - namespace: codex-test
+      server: https://kubernetes.default.svc
+  clusterResourceWhitelist:
+    - group: '*'
+      kind: '*'
+  namespaceResourceWhitelist:
+    - group: '*'
+      kind: '*'

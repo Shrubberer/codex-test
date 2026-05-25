@@ -1,0 +1,19 @@
+{{- $root := . -}}
+{{- range $instance := .Values.instances }}
+{{- if $instance.routeEnabled }}
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: {{ $root.Values.app.baseName }}-{{ $instance.name }}
+  labels:
+    {{- include "hello-failover.commonLabels" $root | nindent 4 }}
+    app.kubernetes.io/component: {{ $instance.name }}
+spec:
+  to:
+    kind: Service
+    name: {{ $root.Values.app.baseName }}-{{ $instance.name }}
+  port:
+    targetPort: http
+---
+{{- end }}
+{{- end }}
