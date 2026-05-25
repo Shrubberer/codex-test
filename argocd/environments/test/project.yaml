@@ -1,17 +1,17 @@
 apiVersion: argoproj.io/v1alpha1
 kind: AppProject
 metadata:
-  name: codex-test
+  name: istio-failover-demo
   namespace: openshift-gitops
   annotations:
     argocd.argoproj.io/sync-wave: "0"
 spec:
-  description: GitOps project for the codex-test failover demo
+  description: GitOps project for the istio-failover-demo repository
   sourceRepos:
-    - https://github.com/Shrubberer/codex-test.git
-    - git@github.com:Shrubberer/codex-test.git
+    - https://github.com/Shrubberer/istio-failover-demo.git
+    - git@github.com:Shrubberer/istio-failover-demo.git
   destinations:
-    - namespace: codex-test
+    - namespace: istio-failover-demo
       server: https://kubernetes.default.svc
   clusterResourceWhitelist:
     - group: '*'

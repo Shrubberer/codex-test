@@ -12,7 +12,7 @@ mesh:
     gatewayName: hello-mesh-ingress
     selector:
       istio: ingressgateway
-    host: hello-mesh-codex-test.apps-crc.testing
+    host: hello-mesh-istio-failover-demo.apps-crc.testing
     port:
       name: http
       number: 80

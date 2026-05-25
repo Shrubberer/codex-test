@@ -27,7 +27,7 @@ metadata:
   name: {{ .Values.mesh.ingress.gatewayName }}
   labels:
     app.kubernetes.io/name: {{ .Values.mesh.ingress.gatewayName }}
-    app.kubernetes.io/part-of: codex-test
+    app.kubernetes.io/part-of: istio-failover-demo
     app.kubernetes.io/component: ingress
 spec:
   selector:

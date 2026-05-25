@@ -1,12 +1,12 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: codex-test-test
+  name: istio-failover-demo-test
   namespace: openshift-gitops
 spec:
   project: default
   source:
-    repoURL: https://github.com/Shrubberer/codex-test.git
+    repoURL: https://github.com/Shrubberer/istio-failover-demo.git
     targetRevision: main
     path: argocd/environments/test
   destination:

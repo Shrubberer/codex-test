@@ -11,7 +11,7 @@ This folder only keeps the Service Mesh 2 control plane manifest for CRC:
 
 ## What Argo manages
 
-The `codex-test-mesh` Argo application renders:
+The `istio-failover-demo-mesh` Argo application renders:
 
 - `ServiceMeshMember`
 - `Gateway`

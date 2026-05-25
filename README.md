@@ -1,4 +1,4 @@
-# codex-test
+# istio-failover-demo
 
 Spring Boot failover demo for OpenShift, Service Mesh 2, and Argo CD app-of-apps.
 
@@ -46,8 +46,8 @@ GET /?input=fail-primary
 Argo manages deployment state, not the binary S2I build. For now the build stays separate:
 
 ```bash
-oc apply -f openshift/build-resources.yaml -n codex-test
-oc start-build hello-world --from-dir=. --follow --wait -n codex-test
+oc apply -f openshift/build-resources.yaml -n istio-failover-demo
+oc start-build hello-world --from-dir=. --follow --wait -n istio-failover-demo
 ```
 
 When you move to a pipeline later, the pipeline should publish a tagged image and Git should update the Helm values that Argo watches.
@@ -57,7 +57,7 @@ When you move to a pipeline later, the pipeline should publish a tagged image an
 The `test` environment is defined by:
 
 - cluster: `https://kubernetes.default.svc`
-- namespace: `codex-test`
+- namespace: `istio-failover-demo`
 - runtime values: `charts/hello-failover/values-test.yaml`
 - mesh values: `charts/hello-failover-mesh/values-test.yaml`
 
@@ -69,7 +69,7 @@ oc apply -n openshift-gitops -f argocd/bootstrap/test-root-app.yaml
 
 That root application creates:
 
-- the `codex-test` `AppProject`
+- the `istio-failover-demo` `AppProject`
 - the runtime child application
 - the mesh child application
 - the minimal `istio-system` role binding Argo needs to manage `ServiceMeshMember`

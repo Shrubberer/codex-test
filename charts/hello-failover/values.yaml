@@ -5,7 +5,7 @@ app:
   meshDemoLabel: failover
 
 image:
-  repository: image-registry.openshift-image-registry.svc:5000/codex-test/hello-world
+  repository: image-registry.openshift-image-registry.svc:5000/istio-failover-demo/hello-world
   tag: latest
   pullPolicy: Always
 

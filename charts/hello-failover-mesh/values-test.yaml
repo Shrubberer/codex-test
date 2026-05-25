@@ -9,7 +9,7 @@ mesh:
   ingress:
     enabled: true
     gatewayName: hello-mesh-ingress
-    host: hello-mesh-codex-test.apps-crc.testing
+    host: hello-mesh-istio-failover-demo.apps-crc.testing
 
 meshClient:
   enabled: true

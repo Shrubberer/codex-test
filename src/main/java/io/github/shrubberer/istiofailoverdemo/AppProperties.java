@@ -1,4 +1,4 @@
-package com.codex.test.helloworld;
+package io.github.shrubberer.istiofailoverdemo;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 

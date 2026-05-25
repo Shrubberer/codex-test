@@ -1,4 +1,4 @@
-package com.codex.test.helloworld;
+package io.github.shrubberer.istiofailoverdemo;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -55,7 +55,7 @@ public class HelloController {
 
     private ResponseEntity.BodyBuilder withInstanceHeaders(ResponseEntity.BodyBuilder bodyBuilder) {
         return bodyBuilder
-            .header("X-Codex-Instance", appProperties.getInstanceName())
-            .header("X-Codex-Version", appProperties.getVersion());
+            .header("X-Failover-Instance", appProperties.getInstanceName())
+            .header("X-Failover-Version", appProperties.getVersion());
     }
 }

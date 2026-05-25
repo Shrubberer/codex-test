@@ -1,0 +1,9 @@
+.git
+.keys
+argocd
+charts
+istio
+openshift
+scripts
+README.md
+target

@@ -6,7 +6,7 @@ metadata:
   labels:
     app: {{ .Values.meshClient.name }}
     app.kubernetes.io/name: {{ .Values.meshClient.name }}
-    app.kubernetes.io/part-of: codex-test
+    app.kubernetes.io/part-of: istio-failover-demo
     app.kubernetes.io/component: test-client
     failover-role: {{ .Values.meshClient.failoverRole }}
 spec:
@@ -20,7 +20,7 @@ spec:
       labels:
         app: {{ .Values.meshClient.name }}
         app.kubernetes.io/name: {{ .Values.meshClient.name }}
-        app.kubernetes.io/part-of: codex-test
+        app.kubernetes.io/part-of: istio-failover-demo
         app.kubernetes.io/component: test-client
         failover-role: {{ .Values.meshClient.failoverRole }}
       annotations:

@@ -1,7 +1,7 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: openshift-gitops-codex-mesh-user
+  name: openshift-gitops-istio-failover-demo-mesh-user
   namespace: istio-system
   annotations:
     argocd.argoproj.io/sync-wave: "0"

@@ -1,14 +1,14 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: codex-test-runtime
+  name: istio-failover-demo-runtime
   namespace: openshift-gitops
   annotations:
     argocd.argoproj.io/sync-wave: "1"
 spec:
-  project: codex-test
+  project: istio-failover-demo
   source:
-    repoURL: https://github.com/Shrubberer/codex-test.git
+    repoURL: https://github.com/Shrubberer/istio-failover-demo.git
     targetRevision: main
     path: charts/hello-failover
     helm:
@@ -17,7 +17,7 @@ spec:
         - values-test.yaml
   destination:
     server: https://kubernetes.default.svc
-    namespace: codex-test
+    namespace: istio-failover-demo
   syncPolicy:
     automated:
       prune: true

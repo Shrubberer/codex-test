@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-NAMESPACE="${1:-codex-test}"
+NAMESPACE="${1:-istio-failover-demo}"
 FAULT_INPUT="${2:-fail-primary}"
 RECOVERY_WAIT_SECONDS="${RECOVERY_WAIT_SECONDS:-35}"
 INGRESS_NAMESPACE="${INGRESS_NAMESPACE:-istio-system}"
@@ -130,7 +130,7 @@ if [[ "${ingress_failover_role}" != "primary" ]]; then
 fi
 
 PRIMARY_ROUTE_HOST="$(oc get route hello-primary -n "${NAMESPACE}" -o jsonpath='{.spec.host}')"
-MESH_ROUTE_HOST="$(oc get route -n "${INGRESS_NAMESPACE}" -l "app.kubernetes.io/name=${INGRESS_GATEWAY_NAME}" -o jsonpath='{.items[0].spec.host}')"
+MESH_ROUTE_HOST="$(oc get route -n "${INGRESS_NAMESPACE}" -l "app.kubernetes.io/name=${INGRESS_GATEWAY_NAME},maistra.io/gateway-namespace=${NAMESPACE}" -o jsonpath='{.items[0].spec.host}')"
 
 [[ -n "${PRIMARY_ROUTE_HOST}" ]] || fail "Could not determine the hello-primary route host"
 [[ -n "${MESH_ROUTE_HOST}" ]] || fail "Could not determine the mesh ingress route host in ${INGRESS_NAMESPACE}"
@@ -145,7 +145,7 @@ step "Failover"
 show_curl "Direct call to the primary route, expect the intentional 503" "status-and-body" -i "http://${PRIMARY_ROUTE_HOST}/?input=${FAULT_INPUT}"
 show_curl "Same input through the mesh ingress route, expect Istio to fail over to secondary" "status-and-body" -i "http://${MESH_ROUTE_HOST}/?input=${FAULT_INPUT}"
 mesh_fault_response="${LAST_CURL_RESPONSE}"
-mesh_instance="$(printf '%s' "${mesh_fault_response}" | extract_header_value x-codex-instance)"
+mesh_instance="$(printf '%s' "${mesh_fault_response}" | extract_header_value x-failover-instance)"
 if [[ -n "${mesh_instance}" ]]; then
   note "Result: mesh response came from ${mesh_instance}"
 fi
