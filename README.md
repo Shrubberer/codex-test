@@ -102,6 +102,8 @@ The script only checks prerequisites and demonstrates the behavior step by step 
 - sends the same request through the mesh ingress route so Istio fails over to secondary
 - waits for the ejection window to expire and shows traffic returning to primary
 
+For deterministic primary-first behavior on the external mesh route, the ingress gateway pod needs the label `failover-role=primary`. If the script reports that the label is missing, run the one-line `oc patch` command it prints and then rerun the demo.
+
 ## Failover model
 
 The current mesh policy prefers the primary instance using the custom `failover-role` label, then fails over to secondary when the primary returns `503` and is ejected by outlier detection.

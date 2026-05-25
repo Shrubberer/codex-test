@@ -95,11 +95,16 @@ oc get namespace "${NAMESPACE}" >/dev/null 2>&1 || fail "Namespace ${NAMESPACE} 
 require_namespaced_resource deployment hello-primary
 require_namespaced_resource deployment hello-secondary
 require_namespaced_resource route hello-primary
-require_namespaced_resource gateway "${INGRESS_GATEWAY_NAME}"
+require_namespaced_resource gateway.networking.istio.io "${INGRESS_GATEWAY_NAME}"
 require_namespaced_resource virtualservice "${INGRESS_GATEWAY_NAME}"
 require_namespaced_resource virtualservice hello-mesh
 require_namespaced_resource destinationrule hello-mesh
 require_namespaced_resource smm default
+
+ingress_failover_role="$(oc get pods -n "${INGRESS_NAMESPACE}" -l app=istio-ingressgateway -o jsonpath='{.items[0].metadata.labels.failover-role}')"
+if [[ "${ingress_failover_role}" != "primary" ]]; then
+  fail "Ingress gateway pod label failover-role=primary is missing. Run: oc patch deployment istio-ingressgateway -n ${INGRESS_NAMESPACE} --type merge -p '{\"spec\":{\"template\":{\"metadata\":{\"labels\":{\"failover-role\":\"primary\"}}}}}'"
+fi
 
 PRIMARY_ROUTE_HOST="$(oc get route hello-primary -n "${NAMESPACE}" -o jsonpath='{.spec.host}')"
 MESH_ROUTE_HOST="$(oc get route -n "${INGRESS_NAMESPACE}" -l "app.kubernetes.io/name=${INGRESS_GATEWAY_NAME}" -o jsonpath='{.items[0].spec.host}')"
