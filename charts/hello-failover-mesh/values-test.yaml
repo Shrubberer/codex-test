@@ -5,5 +5,11 @@ serviceMeshMember:
     name: codex-mesh
     namespace: istio-system
 
+mesh:
+  ingress:
+    enabled: true
+    gatewayName: hello-mesh-ingress
+    host: hello-mesh-codex-test.apps-crc.testing
+
 meshClient:
   enabled: true

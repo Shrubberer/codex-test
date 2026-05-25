@@ -21,7 +21,11 @@ spec:
     prometheus:
       enabled: false
   gateways:
-    enabled: false
+    enabled: true
+    ingress:
+      enabled: true
+    openshiftRoute:
+      enabled: true
   policy:
     type: Istiod
   telemetry:

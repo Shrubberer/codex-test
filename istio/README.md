@@ -7,6 +7,7 @@ This folder only keeps the Service Mesh 2 control plane manifest for CRC:
 - `smcp.yaml`
   - creates a lightweight `codex-mesh` control plane in `istio-system`
   - disables nonessential addons for CRC
+  - enables an ingress gateway and OpenShift route generation for the external failover demo
 
 ## What Argo manages
 

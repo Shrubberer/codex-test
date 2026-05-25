@@ -95,11 +95,11 @@ Once the app and mesh are already deployed, you can watch the failover live with
 ./scripts/mesh-failover-test.sh
 ```
 
-The script only checks prerequisites and demonstrates the behavior step by step:
+The script only checks prerequisites and demonstrates the behavior step by step from your terminal:
 
-- confirms the demo resources already exist
-- shows the primary returning its intentional `503` directly
-- sends the same request through `hello-mesh` so Istio fails over to secondary
+- discovers the external `hello-primary` route and the external mesh ingress route
+- shows the primary route returning its intentional `503` directly
+- sends the same request through the mesh ingress route so Istio fails over to secondary
 - waits for the ejection window to expire and shows traffic returning to primary
 
 ## Failover model

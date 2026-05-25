@@ -7,6 +7,16 @@ serviceMeshMember:
 
 mesh:
   serviceName: hello-mesh
+  ingress:
+    enabled: true
+    gatewayName: hello-mesh-ingress
+    selector:
+      istio: ingressgateway
+    host: hello-mesh-codex-test.apps-crc.testing
+    port:
+      name: http
+      number: 80
+      protocol: HTTP
   retries:
     attempts: 2
     perTryTimeout: 2s

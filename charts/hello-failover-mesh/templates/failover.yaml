@@ -9,7 +9,7 @@ spec:
   gateways:
     - mesh
   http:
-    - name: hello-failover
+    - name: hello-failover-internal
       retries:
         attempts: {{ .Values.mesh.retries.attempts }}
         perTryTimeout: {{ .Values.mesh.retries.perTryTimeout }}
@@ -19,6 +19,48 @@ spec:
             host: {{ .Values.mesh.serviceName }}
             port:
               number: 8080
+---
+{{- if .Values.mesh.ingress.enabled }}
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: {{ .Values.mesh.ingress.gatewayName }}
+  labels:
+    app.kubernetes.io/name: {{ .Values.mesh.ingress.gatewayName }}
+    app.kubernetes.io/part-of: codex-test
+    app.kubernetes.io/component: ingress
+spec:
+  selector:
+    {{- toYaml .Values.mesh.ingress.selector | nindent 4 }}
+  servers:
+    - hosts:
+        - {{ .Values.mesh.ingress.host }}
+      port:
+        name: {{ .Values.mesh.ingress.port.name }}
+        number: {{ .Values.mesh.ingress.port.number }}
+        protocol: {{ .Values.mesh.ingress.port.protocol }}
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: {{ .Values.mesh.ingress.gatewayName }}
+spec:
+  hosts:
+    - {{ .Values.mesh.ingress.host }}
+  gateways:
+    - {{ .Values.mesh.ingress.gatewayName }}
+  http:
+    - name: hello-failover-external
+      retries:
+        attempts: {{ .Values.mesh.retries.attempts }}
+        perTryTimeout: {{ .Values.mesh.retries.perTryTimeout }}
+        retryOn: {{ .Values.mesh.retries.retryOn }}
+      route:
+        - destination:
+            host: {{ .Values.mesh.serviceName }}
+            port:
+              number: 8080
+{{- end }}
 ---
 apiVersion: networking.istio.io/v1beta1
 kind: DestinationRule
