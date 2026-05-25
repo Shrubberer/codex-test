@@ -14,8 +14,6 @@ spec:
         attempts: {{ .Values.mesh.retries.attempts }}
         perTryTimeout: {{ .Values.mesh.retries.perTryTimeout }}
         retryOn: {{ .Values.mesh.retries.retryOn }}
-        retriableStatusCodes:
-          {{- toYaml .Values.mesh.retries.retriableStatusCodes | nindent 10 }}
       route:
         - destination:
             host: {{ .Values.mesh.serviceName }}

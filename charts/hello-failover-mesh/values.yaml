@@ -10,9 +10,7 @@ mesh:
   retries:
     attempts: 2
     perTryTimeout: 2s
-    retryOn: connect-failure,refused-stream,reset,gateway-error,retriable-status-codes
-    retriableStatusCodes:
-      - 503
+    retryOn: 5xx,connect-failure,refused-stream,reset,gateway-error
   outlierDetection:
     consecutive5xxErrors: 1
     interval: 5s
