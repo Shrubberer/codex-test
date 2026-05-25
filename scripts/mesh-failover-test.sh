@@ -8,9 +8,10 @@ FAULT_INPUT="${3:-fail-primary}"
 RECOVERY_WAIT_SECONDS="${RECOVERY_WAIT_SECONDS:-35}"
 SOURCE_DEPLOYMENT="${SOURCE_DEPLOYMENT:-hello-primary}"
 SOURCE_CONTAINER="${SOURCE_CONTAINER:-hello-world}"
+LAST_CURL_RESPONSE=""
 
 step() {
-  printf '\n[%s] %s\n' "$1" "$2"
+  printf '\n== %s ==\n' "$1"
 }
 
 note() {
@@ -53,16 +54,21 @@ mesh_details() {
   curl_from_source "http://${HOST}:8080/details"
 }
 
-mesh_fault() {
-  curl_from_source -i "http://${HOST}:8080/?input=${FAULT_INPUT}"
-}
+show_curl() {
+  local description="$1"
+  shift
+  local response
 
-local_primary_fault() {
-  curl_from_source -i "http://127.0.0.1:8080/?input=${FAULT_INPUT}"
-}
-
-local_primary_readiness() {
-  curl_from_source "http://127.0.0.1:8080/actuator/health/readiness"
+  note "# ${description}"
+  printf '$ curl -sS'
+  for arg in "$@"; do
+    printf ' %q' "$arg"
+  done
+  printf '\n'
+  response="$(run_from_source curl -sS "$@")"
+  LAST_CURL_RESPONSE="${response}"
+  printf '%s\n' "${response}"
+  printf '\n'
 }
 
 wait_for_primary_on_mesh() {
@@ -88,7 +94,7 @@ wait_for_primary_on_mesh() {
 
 require_command oc
 
-step "1/7" "Checking cluster access and the already-deployed demo resources"
+step "Preflight"
 oc whoami >/dev/null 2>&1 || fail "oc is not logged in or cannot reach the cluster"
 oc get namespace "${NAMESPACE}" >/dev/null 2>&1 || fail "Namespace ${NAMESPACE} does not exist"
 require_namespaced_resource deployment hello-primary
@@ -105,53 +111,35 @@ if ! oc get pods -n "${NAMESPACE}" -l app=hello-world,failover-role=primary \
   fail "No running hello-primary pod with an istio-proxy sidecar was found"
 fi
 
-note "  Cluster access works."
-note "  Namespace ${NAMESPACE} already has the failover app and mesh resources."
-note "  Readiness from inside ${SOURCE_DEPLOYMENT}: $(local_primary_readiness)"
+note "OK: namespace=${NAMESPACE}, source=${SOURCE_DEPLOYMENT}, mesh-service=${HOST}"
+note "All curl commands below run inside ${SOURCE_DEPLOYMENT} via oc exec."
 
-step "2/7" "Explaining the traffic path"
-note "  This script does not install or modify anything."
-note "  It uses ${SOURCE_DEPLOYMENT} as the in-mesh client, so requests to ${HOST} go through the pod's istio-proxy sidecar."
-note "  First we will show the primary's real 503 directly, then we will send the same input through the mesh service."
+step "Warmup"
+note "Making sure ${HOST} is back on primary before the demo starts."
+wait_for_primary_on_mesh >/dev/null || fail "Timed out waiting for ${HOST} to route to primary again"
+show_curl "Readiness check on the source pod" "http://127.0.0.1:8080/actuator/health/readiness"
+show_curl "Baseline mesh route, should hit primary" "http://${HOST}:8080/details"
 
-step "3/7" "Making sure the primary is back in rotation before the demo"
-note "  Istio temporarily ejects the failing primary for about ${RECOVERY_WAIT_SECONDS}s after a fault."
-note "  If you ran the demo recently, traffic may still be on secondary. We will wait until ${HOST} returns to primary again."
-baseline_response="$(wait_for_primary_on_mesh)" || fail "Timed out waiting for ${HOST} to route to primary again"
-note "  Baseline response through ${HOST}:"
-printf '%s\n' "${baseline_response}"
-
-step "4/7" "Showing the forced 503 directly on the primary"
-note "  This call goes to 127.0.0.1 inside the primary pod, so it bypasses failover and shows the application's intentional fault."
-direct_fault_response="$(local_primary_fault)"
-printf '%s\n' "${direct_fault_response}"
-
-step "5/7" "Triggering the same input through the mesh service"
-note "  Now the request goes to ${HOST}. Istio should observe the 503 from primary, retry, and return the secondary response."
-mesh_fault_response="$(mesh_fault)"
-printf '%s\n' "${mesh_fault_response}"
+step "Failover"
+show_curl "Direct call to primary, bypassing the mesh, expect the intentional 503" -i "http://127.0.0.1:8080/?input=${FAULT_INPUT}"
+show_curl "Same input through ${HOST}, expect Istio to fail over to secondary" -i "http://${HOST}:8080/?input=${FAULT_INPUT}"
+mesh_fault_response="${LAST_CURL_RESPONSE}"
 mesh_instance="$(printf '%s' "${mesh_fault_response}" | extract_header_value x-codex-instance)"
 if [[ -n "${mesh_instance}" ]]; then
-  note "  The mesh-visible response came from: ${mesh_instance}"
+  note "Result: mesh response came from ${mesh_instance}"
 fi
 
-step "6/7" "Watching temporary failover while the primary stays ejected"
-note "  The next few mesh requests should continue to hit secondary while the primary is still out of rotation."
-for request_number in 1 2 3; do
-  response="$(mesh_details)"
-  instance="$(printf '%s' "${response}" | extract_instance_name)"
-  note "  Mesh details request ${request_number}: instance=${instance:-unknown}"
-  printf '%s\n' "${response}"
-  echo
-  sleep 2
-done
+step "While Primary Is Ejected"
+show_curl "Immediate follow-up through ${HOST}, should still hit secondary" "http://${HOST}:8080/details"
+followup_response="${LAST_CURL_RESPONSE}"
+followup_instance="$(printf '%s' "${followup_response}" | extract_instance_name)"
+if [[ -n "${followup_instance}" ]]; then
+  note "Result: mesh is currently routing to ${followup_instance}"
+fi
 
-step "7/7" "Waiting for recovery and confirming traffic returns to primary"
-note "  Waiting ${RECOVERY_WAIT_SECONDS}s for the outlier ejection window to expire..."
+step "Recovery"
+note "Waiting ${RECOVERY_WAIT_SECONDS}s for the outlier ejection window to expire..."
 sleep "${RECOVERY_WAIT_SECONDS}"
-recovery_response="$(wait_for_primary_on_mesh 6 5)" || fail "Primary did not return to the mesh after the recovery wait"
-note "  Traffic through ${HOST} is back on primary:"
-printf '%s\n' "${recovery_response}"
-
-note ""
-note "Demo complete."
+wait_for_primary_on_mesh 6 5 >/dev/null || fail "Primary did not return to the mesh after the recovery wait"
+show_curl "Mesh route after recovery, should be back on primary" "http://${HOST}:8080/details"
+note "Done."
