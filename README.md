@@ -87,6 +87,21 @@ To roll out a new application version through Argo CD, update the Helm values in
 
 Once that Git change is pushed, Argo CD syncs the new desired state.
 
+## Live failover demo
+
+Once the app and mesh are already deployed, you can watch the failover live with:
+
+```bash
+./scripts/mesh-failover-test.sh
+```
+
+The script only checks prerequisites and demonstrates the behavior step by step:
+
+- confirms the demo resources already exist
+- shows the primary returning its intentional `503` directly
+- sends the same request through `hello-mesh` so Istio fails over to secondary
+- waits for the ejection window to expire and shows traffic returning to primary
+
 ## Failover model
 
 The current mesh policy prefers the primary instance using the custom `failover-role` label, then fails over to secondary when the primary returns `503` and is ejected by outlier detection.
