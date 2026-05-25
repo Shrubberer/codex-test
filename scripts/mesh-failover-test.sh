@@ -44,8 +44,27 @@ extract_header_value() {
   awk -v target="${header_name}" 'BEGIN { IGNORECASE = 1 } $1 == target ":" { gsub("\r", "", $2); print $2 }'
 }
 
+compact_http_response() {
+  awk '
+    BEGIN { status_printed = 0; in_body = 0 }
+    /^HTTP\// && !status_printed {
+      sub(/\r$/, "")
+      print
+      status_printed = 1
+      next
+    }
+    in_body {
+      sub(/\r$/, "")
+      print
+    }
+    /^\r?$/ { in_body = 1 }
+  '
+}
+
 show_curl() {
   local description="$1"
+  local mode="$2"
+  shift
   shift
   local response
 
@@ -57,7 +76,11 @@ show_curl() {
   printf '\n'
   response="$(curl -sS "$@")"
   LAST_CURL_RESPONSE="${response}"
-  printf '%s\n' "${response}"
+  if [[ "${mode}" == "status-and-body" ]]; then
+    printf '%s\n' "${response}" | compact_http_response
+  else
+    printf '%s\n' "${response}"
+  fi
   printf '\n'
 }
 
@@ -114,16 +137,13 @@ MESH_ROUTE_HOST="$(oc get route -n "${INGRESS_NAMESPACE}" -l "app.kubernetes.io/
 
 note "OK: primary-route=${PRIMARY_ROUTE_HOST}"
 note "OK: mesh-route=${MESH_ROUTE_HOST}"
-note "All curl commands below run from your terminal."
 
-step "Warmup"
-note "Making sure the mesh ingress route is back on primary before the demo starts."
 wait_for_primary_on_mesh >/dev/null || fail "Timed out waiting for the mesh ingress route to return to primary"
-show_curl "Baseline mesh ingress route, should hit primary" "http://${MESH_ROUTE_HOST}/details"
+note "ingress route is on primary: ok"
 
 step "Failover"
-show_curl "Direct call to the primary route, expect the intentional 503" -i "http://${PRIMARY_ROUTE_HOST}/?input=${FAULT_INPUT}"
-show_curl "Same input through the mesh ingress route, expect Istio to fail over to secondary" -i "http://${MESH_ROUTE_HOST}/?input=${FAULT_INPUT}"
+show_curl "Direct call to the primary route, expect the intentional 503" "status-and-body" -i "http://${PRIMARY_ROUTE_HOST}/?input=${FAULT_INPUT}"
+show_curl "Same input through the mesh ingress route, expect Istio to fail over to secondary" "status-and-body" -i "http://${MESH_ROUTE_HOST}/?input=${FAULT_INPUT}"
 mesh_fault_response="${LAST_CURL_RESPONSE}"
 mesh_instance="$(printf '%s' "${mesh_fault_response}" | extract_header_value x-codex-instance)"
 if [[ -n "${mesh_instance}" ]]; then
@@ -131,7 +151,7 @@ if [[ -n "${mesh_instance}" ]]; then
 fi
 
 step "While Primary Is Ejected"
-show_curl "Immediate follow-up through the mesh ingress route, should still hit secondary" "http://${MESH_ROUTE_HOST}/details"
+show_curl "Immediate follow-up through the mesh ingress route, should still hit secondary" "body" "http://${MESH_ROUTE_HOST}/details"
 followup_response="${LAST_CURL_RESPONSE}"
 followup_instance="$(printf '%s' "${followup_response}" | extract_instance_name)"
 if [[ -n "${followup_instance}" ]]; then
@@ -142,5 +162,5 @@ step "Recovery"
 note "Waiting ${RECOVERY_WAIT_SECONDS}s for the outlier ejection window to expire..."
 sleep "${RECOVERY_WAIT_SECONDS}"
 wait_for_primary_on_mesh 6 5 >/dev/null || fail "Primary did not return to the mesh ingress route after the recovery wait"
-show_curl "Mesh ingress route after recovery, should be back on primary" "http://${MESH_ROUTE_HOST}/details"
+show_curl "Mesh ingress route after recovery, should be back on primary" "body" "http://${MESH_ROUTE_HOST}/details"
 note "Done."
