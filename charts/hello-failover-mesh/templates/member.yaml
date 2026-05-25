@@ -3,6 +3,8 @@ apiVersion: maistra.io/v1
 kind: ServiceMeshMember
 metadata:
   name: {{ .Values.serviceMeshMember.name }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
 spec:
   controlPlaneRef:
     name: {{ .Values.serviceMeshMember.controlPlane.name }}
