@@ -72,6 +72,7 @@ That root application creates:
 - the `codex-test` `AppProject`
 - the runtime child application
 - the mesh child application
+- the minimal `istio-system` role binding Argo needs to manage `ServiceMeshMember`
 
 If the repo is private, add the repo credentials in Argo CD first. If it is already reachable from Argo CD, the single bootstrap apply is enough.
 
